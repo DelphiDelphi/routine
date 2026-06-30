@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>あさのルーティン</title>
+    <!-- 丸ゴシック体のGoogle Fontsを読み込み -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-gradient: #FFFFFF;
+            --text-color: #4A4A4A;
+            --primary-pink: #FF85A2;
+            --primary-pink-hover: #FFA2B8;
+            --primary-pink-active: #E06D8A;
+            --pastel-blue: #A3D8FF;
+            --pastel-yellow: #FFE066;
+            --pastel-green: #A3FFD6;
+            --shadow-color: rgba(74, 74, 74, 0.12);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            box-sizing: border-box;
+        }
+
+        /* 画面上部のメーター＆残りカウント表示 -> 画面左側縦配置へ */
+        .hud-area {
+            position: absolute;
+            left: 25px;
+            top: 60px;
+            bottom: 120px;
+            width: 90px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0;
+            box-sizing: border-box;
+            pointer-events: none;
+            z-index: 15;
+        }
+
+        .speech-bubble {
+            position: absolute;
+            left: 78px; /* お父さんの顔の右側に配置 */
+            bottom: 0%; /* 初期位置 */
+            transform: translate(0, 50%); /* 縦方向の中央揃え */
+            background-color: white;
+            padding: 10px 18px;
+            border-radius: 20px;
+            font-size: clamp(1.3rem, 3vw, 1.6rem);
+            font-weight: 900;
+            box-shadow: 0 4px 10px var(--shadow-color);
+            color: #FF5A7E;
+            animation: float 3s infinite ease-in-out;
+            border: 3.5px solid var(--pastel-blue);
+            text-align: center;
+            white-space: nowrap;
+            z-index: 25;
+            pointer-events: none;
+            transition: bottom 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* 吹き出しの三角部分（左向き＝お父さんを指す） */
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            left: -10px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-width: 8px 10px 8px 0;
+            border-style: solid;
+            border-color: transparent white transparent transparent;
+            display: block;
+            width: 0;
+        }
+        
+        .speech-bubble::before {
+            content: '';
+            position: absolute;
+            left: -14px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-width: 9px 11px 9px 0;
+            border-style: solid;
+            border-color: transparent var(--pastel-blue) transparent transparent;
+            display: block;
+            width: 0;
+            z-index: -1;
+        }
+
+        .speech-bubble span {
+            font-size: clamp(2.4rem, 6vw, 3.4rem); /* 数字を大きく！ */
+            margin: 0 4px;
+            font-weight: 950;
+        }
+
+        /* 縦型進行ロードマップ */
+        .roadmap-container {
+            width: 26px;
+            height: 100%;
+            flex-grow: 1;
+            background-color: #E2EEFC;
+            border-radius: 15px;
+            position: relative;
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.1);
+            border: 3px solid #FFF;
+            margin-top: 10px;
+        }
+
+        .roadmap-track {
+            position: absolute;
+            bottom: 0; /* 下から伸びる */
+            left: 0;
+            width: 100%;
+            border-radius: 12px;
+            background: linear-gradient(180deg, #7FE5A9, #A3D8FF); /* 縦グラデーション */
+            height: 0%;
+            transition: height 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .roadmap-avatar {
+            position: absolute;
+            bottom: 0%; /* 下(0%)から上(100%)へスライド */
+            left: 50%;
+            transform: translate(-50%, 50%); /* 中央配置 */
+            width: 96px; /* お父さんの顔が見やすい大きさ */
+            height: 96px;
+            border-radius: 50%;
+            border: 3.5px solid white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+            transition: bottom 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            background-size: cover;
+            background-position: center;
+            background-color: white;
+            z-index: 20;
+        }
+
+        .roadmap-goal {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2.2rem;
+            filter: drop-shadow(0 4px 4px var(--shadow-color));
+            z-index: 10;
+        }
+
+        /* メインのタスク表示エリア */
+        .task-main-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            padding: 0 20px 0 130px; /* 左側にHUDがあるため、左余白を130pxあける */
+            box-sizing: border-box;
+        }
+
+        .illustration-container {
+            width: clamp(280px, 58vh, 480px); /* タスク画像エリアをさらに大きく！ */
+            height: clamp(280px, 58vh, 480px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .illustration-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.06));
+        }
+
+        .illustration-container svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.06));
+        }
+
+        .task-title {
+            font-size: clamp(2.5rem, 7vw, 4.5rem);
+            font-weight: 900;
+            color: #333;
+            text-align: center;
+            line-height: 1.2;
+            margin: 0;
+            text-shadow: 2px 2px 0px #FFF, -2px -2px 0px #FFF, 2px -2px 0px #FFF, -2px 2px 0px #FFF;
+        }
+
+        .task-subtitle {
+            font-size: clamp(1.4rem, 4vw, 2.5rem);
+            color: #666;
+            margin-top: 10px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        /* 操作コントロールエリア（下部） */
+        .control-area {
+            width: 100%;
+            padding: 20px 20px 40px 130px; /* 左側にHUDがあるため、左余白を130pxあける */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+        }
+
+        /* できたよ！ボタン */
+        .done-btn {
+            width: 100%;
+            max-width: 450px;
+            font-size: clamp(2rem, 5vw, 3.2rem);
+            font-weight: 900;
+            color: white;
+            background: linear-gradient(135deg, var(--primary-pink) 0%, #FF5A7E 100%);
+            border: none;
+            padding: 16px 0;
+            border-radius: 45px;
+            box-shadow: 0 8px 0 #D14562, 0 15px 25px rgba(255, 90, 126, 0.4);
+            cursor: pointer;
+            outline: none;
+            transition: all 0.1s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            animation: bounce-slow 3s infinite ease-in-out; /* ボタンをふわふわ動かす */
+        }
+
+        .done-btn:active {
+            animation: none; /* 押したときはアニメーションを停止 */
+            transform: translateY(6px);
+            box-shadow: 0 2px 0 #D14562, 0 8px 10px rgba(255, 90, 126, 0.4);
+        }
+
+        .done-btn-icon {
+            font-size: 1.25em;
+        }
+
+        /* もどるボタン */
+        .back-btn {
+            position: absolute;
+            bottom: 40px;
+            left: 20px;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #7A8B9E;
+            background-color: white;
+            border: 3px solid #D2DFEE;
+            padding: 12px 24px;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.06);
+            transition: all 0.1s ease;
+            outline: none;
+            z-index: 10;
+        }
+
+        .back-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+        }
+
+        /* 設定ギアボタン（右上） */
+        .settings-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 2.2rem;
+            background: rgba(255, 255, 255, 0.7);
+            border: 3px solid #FFF;
+            border-radius: 50%;
+            width: 54px;
+            height: 54px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px var(--shadow-color);
+            transition: transform 0.2s ease;
+            z-index: 10;
+        }
+
+        .settings-btn:active {
+            transform: scale(0.9) rotate(45deg);
+        }
+
+        /* 親メニュー・パスコード用モーダル共通 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(74, 74, 74, 0.4);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background-color: white;
+            border-radius: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-sizing: border-box;
+            border: 5px solid var(--pastel-blue);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-title {
+            font-size: 1.8rem;
+            font-weight: 900;
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--text-color);
+        }
+
+        /* 算数ロック（キーパッド） */
+        .math-question {
+            font-size: 2.2rem;
+            font-weight: 900;
+            text-align: center;
+            margin-bottom: 15px;
+            color: #FF5A7E;
+        }
+
+        .math-input-display {
+            background-color: #F0F7FF;
+            border: 3px solid var(--pastel-blue);
+            height: 60px;
+            border-radius: 15px;
+            font-size: 2.5rem;
+            font-weight: 900;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            color: var(--text-color);
+        }
+
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .keypad-btn {
+            background-color: #F3F8FF;
+            border: 2px solid #D2DFEE;
+            font-size: 1.8rem;
+            font-weight: 700;
+            padding: 15px 0;
+            border-radius: 15px;
+            cursor: pointer;
+            color: var(--text-color);
+            box-shadow: 0 3px 0 #D2DFEE;
+            transition: all 0.05s ease;
+        }
+
+        .keypad-btn:active {
+            transform: translateY(3px);
+            box-shadow: none;
+        }
+
+        .keypad-btn.clear {
+            background-color: #FFF0F2;
+            border-color: #FFD6E0;
+            box-shadow: 0 3px 0 #FFD6E0;
+            color: #FF5A7E;
+        }
+
+        .keypad-btn.enter {
+            background-color: #EBFDF3;
+            border-color: #C2F4D9;
+            box-shadow: 0 3px 0 #C2F4D9;
+            color: #10B981;
+        }
+
+        /* 設定パネル内のタスクリスト編集 */
+        .task-list-edit {
+            margin-bottom: 20px;
+            overflow-y: auto;
+            flex-grow: 1;
+            max-height: 40vh;
+            padding-right: 5px;
+        }
+
+        .task-item-edit {
+            background-color: #F8F9FA;
+            border: 2px solid #E9ECEF;
+            border-radius: 15px;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .task-item-edit input[type="text"] {
+            border: 2px solid #CED4DA;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-family: inherit;
+            font-size: 1rem;
+            flex-grow: 1;
+            color: var(--text-color);
+        }
+
+        .task-item-edit select.image-select {
+            border: 2px solid #CED4DA;
+            border-radius: 8px;
+            padding: 6px 4px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            width: 140px;
+            color: var(--text-color);
+            background-color: white;
+            outline: none;
+        }
+
+        .edit-action-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 5px;
+            transition: background 0.1s;
+        }
+
+        .edit-action-btn:hover {
+            background-color: #E9ECEF;
+        }
+
+        .settings-footer {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: auto;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .settings-action-btn {
+            flex-grow: 1;
+            padding: 12px 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border-radius: 15px;
+            cursor: pointer;
+            border: none;
+            font-family: inherit;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+        }
+        
+        .settings-action-btn:active {
+            transform: translateY(2px);
+            box-shadow: none;
+        }
+
+        .btn-save {
+            background-color: #10B981;
+            color: white;
+        }
+
+        .btn-close {
+            background-color: #6B7280;
+            color: white;
+        }
+
+        .btn-add {
+            background-color: var(--pastel-blue);
+            color: #2D3748;
+        }
+
+        .btn-reset {
+            background-color: #E2E8F0;
+            color: #4A5568;
+            font-size: 0.95rem;
+        }
+        
+        .btn-test {
+            background-color: #FBBF24;
+            color: #2D3748;
+            font-size: 0.95rem;
+        }
+
+        /* アニメーション */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-6px) rotate(1deg); }
+        }
+
+        @keyframes bounce-slow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-12px); }
+        }
+
+        @keyframes waddle {
+            0% { transform: translateX(-50%) rotate(-4deg); }
+            100% { transform: translateX(-50%) rotate(4deg); }
+        }
+
+        /* 設定メニュー内のインプット幅調整 */
+        input:focus {
+            outline: none;
+            border-color: var(--pastel-blue) !important;
+            box-shadow: 0 0 5px rgba(163,216,255,0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 設定ギアボタン -->
+    <button class="settings-btn" onclick="openLockModal()">⚙️</button>
+
+    <!-- 画面左側 HUD (進捗・遅延割引対策) -->
+    <div class="hud-area" id="hud-area">
+        <div class="roadmap-container">
+            <div class="roadmap-track" id="roadmap-track"></div>
+            <div class="roadmap-avatar" id="roadmap-avatar"></div>
+            <!-- お父さんが喋っている吹き出し（兄弟要素） -->
+            <div class="speech-bubble" id="speech-bubble">
+                あと<span>11</span>こ！
+            </div>
+            <div class="roadmap-goal" id="roadmap-goal">🎁</div>
+        </div>
+    </div>
+
+    <!-- メイン表示エリア -->
+    <div class="task-main-area" id="task-main-area">
+        <div class="illustration-container" id="illustration-container">
+            <!-- ここにSVGキャラクターが動的に描画されます -->
+        </div>
+        <h1 class="task-title" id="task-title">トイレ</h1>
+        <div class="task-subtitle" id="task-subtitle" style="display: none;"></div>
+    </div>
+
+    <!-- 下部操作パネル -->
+    <div class="control-area">
+        <!-- もどるボタン -->
+        <button class="back-btn" id="back-btn" onclick="prevTask(event)">← もどる</button>
+        
+        <!-- できたよ！ボタン -->
+        <button class="done-btn" id="done-btn" onclick="nextTask()">
+            <span id="done-btn-text">できました！</span>
+        </button>
+    </div>
+
+    <!-- 親用ロック画面（計算） -->
+    <div class="modal-overlay" id="lock-modal">
+        <div class="modal-card">
+            <div class="modal-title">おとなのひとが<br>計算をといてね</div>
+            <div class="math-question" id="math-question">5 + 3 = ?</div>
+            <div class="math-input-display" id="math-input-display">?</div>
+            <div class="keypad">
+                <button class="keypad-btn" onclick="pressKey(1)">1</button>
+                <button class="keypad-btn" onclick="pressKey(2)">2</button>
+                <button class="keypad-btn" onclick="pressKey(3)">3</button>
+                <button class="keypad-btn" onclick="pressKey(4)">4</button>
+                <button class="keypad-btn" onclick="pressKey(5)">5</button>
+                <button class="keypad-btn" onclick="pressKey(6)">6</button>
+                <button class="keypad-btn" onclick="pressKey(7)">7</button>
+                <button class="keypad-btn" onclick="pressKey(8)">8</button>
+                <button class="keypad-btn" onclick="pressKey(9)">9</button>
+                <button class="keypad-btn clear" onclick="clearLockInput()">クリア</button>
+                <button class="keypad-btn" onclick="pressKey(0)">0</button>
+                <button class="keypad-btn enter" onclick="submitLockAnswer()">ひらく</button>
+            </div>
+            <button class="settings-action-btn btn-close" onclick="closeLockModal()">とじる</button>
+        </div>
+    </div>
+
+    <!-- 設定画面 -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal-card">
+            <div class="modal-title">⚙️ ルーティンのせってい</div>
+            
+            <div class="task-list-edit" id="task-list-edit">
+                <!-- ここに動的にタスク設定欄が描画されます -->
+            </div>
+
+            <div class="settings-footer">
+                <button class="settings-action-btn btn-add" onclick="addNewTaskInput()">➕ タスクをふやす</button>
+                <div class="btn-row">
+                    <button class="settings-action-btn btn-reset" onclick="resetToDefaultTasks()">初期化する</button>
+                    <button class="settings-action-btn btn-test" onclick="triggerTestSchoolScreen()">学校画面のテスト</button>
+                </div>
+                <div class="btn-row" style="margin-top: 5px;">
+                    <button class="settings-action-btn btn-close" onclick="closeSettingsModal()">やめる</button>
+                    <button class="settings-action-btn btn-save" onclick="saveSettings()">ほぞんする</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const DEFAULT_TASKS = [
+        { text: 'トイレ', emoji: '🚽', type: 'toilet', subtitle: '' },
+        { text: 'はを みがく', emoji: '🪥', type: 'brush_teeth', subtitle: '' },
+        { text: 'かおを あらう', emoji: '🧼', type: 'wash_face', subtitle: '' },
+        { text: 'あさの べんきょう', emoji: '✏️', type: 'study', subtitle: '' },
+        { text: 'あさごはん', emoji: '🍞', type: 'breakfast', subtitle: '' },
+        { text: 'はを みがく', emoji: '🪥', type: 'brush_teeth', subtitle: '' },
+        { text: 'きがえる', emoji: '👕', type: 'change_clothes', subtitle: '' },
+        { text: 'ティッシュとハンカチ', emoji: '🤧', type: 'tissue', subtitle: '' },
+        { text: 'すいとう', emoji: '🍼', type: 'water', subtitle: '' },
+        { text: 'しゅくだいの かくにん', emoji: '📖', type: 'homework', subtitle: '' },
+        { text: 'じかんわりの かくにん', emoji: '📅', type: 'schedule', subtitle: '' }
+    ];
+
+    const TYPE_TO_EMOJI = {
+        toilet: '🚽',
+        brush_teeth: '🪥',
+        wash_face: '🧼',
+        study: '✏️',
+        breakfast: '🍞',
+        change_clothes: '👕',
+        tissue: '🤧',
+        water: '🍼',
+        homework: '📖',
+        schedule: '📅',
+        custom: '⭐'
+    };
+
+    let tasks = [];
+    let currentIndex = 0;
+    let audioCtx = null;
+    let tempAnswer = "";
+    let correctLockAnswer = 0;
+
+    // 音声初期化
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    // ボタンのタップ音
+    function playTapSound() {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+    }
+
+    // おめでとうの時の音（シャララン）
+    function playGlitterSound() {
+        initAudio();
+        const now = audioCtx.currentTime;
+        const pitches = [523.25, 587.33, 659.25, 698.46, 783.99, 880.00, 987.77, 1046.50, 1174.66, 1318.51, 1567.98];
+        pitches.forEach((freq, index) => {
+            const timeOffset = index * 0.04; 
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + timeOffset);
+            gain.gain.setValueAtTime(0, now + timeOffset);
+            gain.gain.linearRampToValueAtTime(0.08, now + timeOffset + 0.02);
+            gain.gain.linearRampToValueAtTime(0, now + timeOffset + 0.15); 
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + timeOffset);
+            osc.stop(now + timeOffset + 0.15);
+        });
+    }
+
+    // ファンファーレ音（学校の時間）
+    function playFanfareSound() {
+        initAudio();
+        const now = audioCtx.currentTime;
+        const notes = [261.63, 329.63, 392.00, 523.25];
+        notes.forEach((freq, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now);
+            osc.frequency.setValueAtTime(freq * 1.5, now + 0.3);
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.15, now + 0.05);
+            gain.gain.linearRampToValueAtTime(0.15, now + 0.5);
+            gain.gain.linearRampToValueAtTime(0, now + 0.8);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.8);
+        });
+    }
+
+    // ローカルストレージからタスクを読み込み、なければデフォルトを適用
+    function loadTasks() {
+        const stored = localStorage.getItem('routine_tasks');
+        if (stored) {
+            try {
+                tasks = JSON.parse(stored);
+                const knownTypes = ['toilet', 'brush_teeth', 'wash_face', 'study', 'breakfast', 'change_clothes', 'tissue', 'water', 'homework', 'schedule', 'play', 'school'];
+                
+                // 保存されたタスクのタイプを再検証（バグ修正対応）および説明文のクリア
+                tasks.forEach(task => {
+                    // 過去の判定バグ（しゅくだいのかくにん が study に判定されていた問題）を自動修復
+                    if (task.type === 'study' && (task.text.includes('しゅくだいの かくにん') || task.text.includes('しゅくだいのかくにん') || task.text.includes('しゅくだいの　かくにん'))) {
+                        task.type = 'homework';
+                    }
+                    
+                    // すでに有効なtypeがあればそれを保持、なければ検出する
+                    if (!task.type || !knownTypes.includes(task.type)) {
+                        task.type = detectTaskType(task.text, task.emoji);
+                    }
+                    task.subtitle = ''; // 説明文を消去
+                });
+            } catch (e) {
+                tasks = [...DEFAULT_TASKS];
+            }
+        } else {
+            tasks = [...DEFAULT_TASKS];
+        }
+    }
+
+    // 自動で文字や絵文字からタスクタイプを判別
+    function detectTaskType(text, emoji) {
+        text = text.toLowerCase();
+        if (text.includes('トイレ') || emoji === '🚽') return 'toilet';
+        if (text.includes('ごはん') || text.includes('たべる') || emoji === '🍞' || emoji === '🍙') return 'breakfast';
+        if (text.includes('はみがき') || text.includes('はを') || text.includes('みがく') || text.includes('歯') || emoji === '🪥') return 'brush_teeth';
+        if (text.includes('かお') || text.includes('あらう') || emoji === '🧼') return 'wash_face';
+        if (text.includes('じかんわり') || emoji === '📅') return 'schedule';
+        // しゅくだいのかくにん (しゅくだい + かくにん) の検出優先度をあげる
+        if (text.includes('しゅくだいのかくにん') || text.includes('しゅくだいの かくにん') || (text.includes('しゅくだい') && text.includes('かくにん')) || emoji === '📖') return 'homework';
+        if (text.includes('べんきょう') || text.includes('しゅくだい') || emoji === '✏️') return 'study';
+        if (text.includes('きがえる') || text.includes('ふく') || emoji === '👕' || emoji === '👗') return 'change_clothes';
+        if (text.includes('てぃっしゅ') || text.includes('はんかち') || emoji === '🤧') return 'tissue';
+        if (text.includes('すいとう') || emoji === '🍼' || emoji === '🥤') return 'water';
+        return 'custom';
+    }
+
+    // 各タスクに対応するイラストの表示（生成画像 or カスタム用長男くん）
+    function getTaskImage(task) {
+        const emoji = task.emoji || '⭐';
+        const type = task.type || 'custom';
+        
+        // 生成済みのイラストがあるデフォルトタスク
+        const knownTypes = ['toilet', 'brush_teeth', 'wash_face', 'study', 'breakfast', 'change_clothes', 'tissue', 'water', 'homework', 'schedule', 'play', 'school'];
+        
+        // キャッシュによる画像の未更新を防ぐため、タイムスタンプを付与
+        const cacheBuster = Date.now();
+        
+        if (knownTypes.includes(type)) {
+            return `<img src="images/${type}.png?v=${cacheBuster}" alt="${task.text}" style="width: 100%; height: 100%; object-fit: contain;">`;
+        }
+        
+        // 親がカスタム追加したタスクは、長男くんが応援する画像
+        return `<img src="images/custom.png?v=${cacheBuster}" alt="${task.text}" style="width: 100%; height: 100%; object-fit: contain;">`;
+    }
+
+    // UIの描画更新
+    function updateUI() {
+        const hud = document.getElementById('hud-area');
+        const bubble = document.getElementById('speech-bubble');
+        const track = document.getElementById('roadmap-track');
+        const avatar = document.getElementById('roadmap-avatar');
+        const goal = document.getElementById('roadmap-goal');
+        const illustration = document.getElementById('illustration-container');
+        const title = document.getElementById('task-title');
+        const subtitle = document.getElementById('task-subtitle');
+        const doneBtnText = document.getElementById('done-btn-text');
+        const backBtn = document.getElementById('back-btn');
+
+        const total = tasks.length;
+
+        // もどるボタンの表示・非表示
+        if (currentIndex === 0) {
+            backBtn.style.visibility = 'hidden';
+        } else {
+            backBtn.style.visibility = 'visible';
+        }
+
+        if (currentIndex < total) {
+            // 通常のタスク
+            hud.style.display = 'flex';
+            const remaining = total - currentIndex;
+            bubble.innerHTML = `あと<span>${remaining}</span>こ！`;
+            
+            // 縦型スゴロク進捗
+            const percent = (currentIndex / total) * 100;
+            track.style.height = percent + '%';
+            avatar.style.bottom = percent + '%';
+            bubble.style.bottom = percent + '%';
+            avatar.style.backgroundImage = 'url("images/father_strict.png")';
+            avatar.innerText = '';
+            goal.innerText = '🎁';
+
+            const task = tasks[currentIndex];
+            title.innerHTML = task.text;
+            if (task.subtitle) {
+                subtitle.innerHTML = task.subtitle;
+                subtitle.style.display = 'block';
+            } else {
+                subtitle.innerHTML = '';
+                subtitle.style.display = 'none';
+            }
+            illustration.innerHTML = getTaskImage(task);
+            doneBtnText.innerText = "できました！";
+        } else if (currentIndex === total) {
+            // おめでとう！あそべる画面
+            hud.style.display = 'flex';
+            bubble.innerHTML = `やったね！✨`;
+            track.style.height = '100%';
+            avatar.style.bottom = '100%';
+            bubble.style.bottom = '100%';
+            avatar.style.backgroundImage = 'url("images/father_smile.png")';
+            avatar.innerText = '';
+            goal.innerText = '👑';
+
+            title.style.color = '#e91e63';
+            title.innerHTML = "7じ55ふん まで<br>あそんで いいよ！";
+            subtitle.innerHTML = "";
+            subtitle.style.display = 'none';
+            
+            const playScreenObj = { type: 'play', emoji: '🎮' };
+            illustration.innerHTML = getTaskImage(playScreenObj);
+            doneBtnText.innerText = "学校へいく！";
+        } else {
+            // 学校の時間
+            hud.style.display = 'none'; // HUD非表示
+            title.style.color = '#ff4500';
+            title.innerHTML = "学校へ行こう！";
+            subtitle.innerHTML = "";
+            subtitle.style.display = 'none';
+
+            const schoolScreenObj = { type: 'school', emoji: '🏫' };
+            illustration.innerHTML = getTaskImage(schoolScreenObj);
+            doneBtnText.innerText = "さいしょから";
+        }
+    }
+
+    // 次へ進む
+    function nextTask() {
+        initAudio();
+        const total = tasks.length;
+
+        if (currentIndex < total) {
+            // 通常タスク完了
+            currentIndex++;
+            if (currentIndex === total) {
+                playGlitterSound(); // 最後のタスク完了：シャララン！
+            } else {
+                playTapSound();
+            }
+        } else if (currentIndex === total) {
+            // あそび終了 -> 学校へ
+            currentIndex++;
+            playFanfareSound(); // ファンファーレ！
+        } else {
+            // 最初に戻る
+            currentIndex = 0;
+            playTapSound();
+        }
+
+        updateUI();
+    }
+
+    // 前に戻る
+    function prevTask(event) {
+        if (event) event.stopPropagation();
+        if (currentIndex > 0) {
+            playTapSound();
+            currentIndex--;
+            updateUI();
+        }
+    }
+
+    // ----------------- 設定ロック機能 (算数) -----------------
+    function openLockModal() {
+        const num1 = Math.floor(Math.random() * 6) + 2; // 2~7
+        const num2 = Math.floor(Math.random() * 6) + 2; // 2~7
+        correctLockAnswer = num1 + num2;
+        
+        document.getElementById('math-question').innerText = `${num1} + ${num2} = ?`;
+        tempAnswer = "";
+        document.getElementById('math-input-display').innerText = "?";
+        
+        document.getElementById('lock-modal').classList.add('active');
+    }
+
+    function closeLockModal() {
+        document.getElementById('lock-modal').classList.remove('active');
+    }
+
+    function pressKey(num) {
+        initAudio();
+        playTapSound();
+        if (tempAnswer.length < 3) {
+            tempAnswer += num;
+            document.getElementById('math-input-display').innerText = tempAnswer;
+        }
+    }
+
+    function clearLockInput() {
+        initAudio();
+        playTapSound();
+        tempAnswer = "";
+        document.getElementById('math-input-display').innerText = "?";
+    }
+
+    function submitLockAnswer() {
+        initAudio();
+        if (parseInt(tempAnswer) === correctLockAnswer) {
+            playGlitterSound();
+            closeLockModal();
+            openSettingsModal();
+        } else {
+            playTapSound();
+            alert("ちがうよ！おとなの人にやってもらおうね");
+            clearLockInput();
+        }
+    }
+
+    // ----------------- 設定メニュー機能 -----------------
+    function openSettingsModal() {
+        renderEditList();
+        document.getElementById('settings-modal').classList.add('active');
+    }
+
+    function closeSettingsModal() {
+        document.getElementById('settings-modal').classList.remove('active');
+    }
+
+    // 編集画面のタスクリストをレンダリング
+    function renderEditList() {
+        const listDiv = document.getElementById('task-list-edit');
+        listDiv.innerHTML = "";
+        
+        tasks.forEach((task, idx) => {
+            const row = document.createElement('div');
+            row.className = 'task-item-edit';
+            row.innerHTML = `
+                <select class="image-select">
+                    <option value="toilet" ${task.type === 'toilet' ? 'selected' : ''}>🚽 トイレ</option>
+                    <option value="brush_teeth" ${task.type === 'brush_teeth' ? 'selected' : ''}>🪥 はみがき</option>
+                    <option value="wash_face" ${task.type === 'wash_face' ? 'selected' : ''}>🧼 かおあらい</option>
+                    <option value="study" ${task.type === 'study' ? 'selected' : ''}>✏️ べんきょう</option>
+                    <option value="breakfast" ${task.type === 'breakfast' ? 'selected' : ''}>🍞 ごはん</option>
+                    <option value="change_clothes" ${task.type === 'change_clothes' ? 'selected' : ''}>👕 おきがえ</option>
+                    <option value="tissue" ${task.type === 'tissue' ? 'selected' : ''}>🤧 ティッシュ</option>
+                    <option value="water" ${task.type === 'water' ? 'selected' : ''}>🍼 すいとう</option>
+                    <option value="homework" ${task.type === 'homework' ? 'selected' : ''}>📖 しゅくだい</option>
+                    <option value="schedule" ${task.type === 'schedule' ? 'selected' : ''}>📅 じかんわり</option>
+                    <option value="custom" ${task.type === 'custom' ? 'selected' : ''}>⭐ おうえん</option>
+                </select>
+                <input type="text" class="text-input" value="${task.text || ''}" placeholder="タスクめい">
+                <button class="edit-action-btn" onclick="moveTask(${idx}, -1)" title="うえへ">▲</button>
+                <button class="edit-action-btn" onclick="moveTask(${idx}, 1)" title="したへ">▼</button>
+                <button class="edit-action-btn" onclick="deleteTask(${idx})" title="さくじょ" style="color: #FF5A7E;">🗑️</button>
+            `;
+            listDiv.appendChild(row);
+        });
+    }
+
+    // タスクの順序入れ替え
+    function moveTask(index, direction) {
+        readInputsToTasks();
+        const targetIndex = index + direction;
+        if (targetIndex >= 0 && targetIndex < tasks.length) {
+            const temp = tasks[index];
+            tasks[index] = tasks[targetIndex];
+            tasks[targetIndex] = temp;
+            renderEditList();
+        }
+    }
+
+    // タスクの削除
+    function deleteTask(index) {
+        readInputsToTasks();
+        tasks.splice(index, 1);
+        renderEditList();
+    }
+
+    // インプットの値から現在のtasks配列を一時更新
+    function readInputsToTasks() {
+        const listDiv = document.getElementById('task-list-edit');
+        const rows = listDiv.getElementsByClassName('task-item-edit');
+        const updated = [];
+        
+        for (let i = 0; i < rows.length; i++) {
+            const typeVal = rows[i].querySelector('.image-select').value;
+            const textVal = rows[i].querySelector('.text-input').value;
+            const emojiVal = TYPE_TO_EMOJI[typeVal] || '⭐';
+            
+            updated.push({
+                text: textVal,
+                emoji: emojiVal,
+                type: typeVal,
+                subtitle: ''
+            });
+        }
+        tasks = updated;
+    }
+
+    // 新規タスク入力行の追加
+    function addNewTaskInput() {
+        readInputsToTasks();
+        tasks.push({ text: '新しいタスク', emoji: '⭐', type: 'custom', subtitle: '' });
+        renderEditList();
+        
+        // スクロールを一番下へ
+        const listDiv = document.getElementById('task-list-edit');
+        listDiv.scrollTop = listDiv.scrollHeight;
+    }
+
+    // デフォルトへのリセット
+    function resetToDefaultTasks() {
+        if (confirm("最初のタスクリストに戻しますか？")) {
+            tasks = [...DEFAULT_TASKS];
+            renderEditList();
+        }
+    }
+
+    // 設定を保存する
+    function saveSettings() {
+        readInputsToTasks();
+        if (tasks.length === 0) {
+            alert("タスクは1個以上いれてね！");
+            return;
+        }
+        localStorage.setItem('routine_tasks', JSON.stringify(tasks));
+        currentIndex = 0; // 最初からにする
+        updateUI();
+        closeSettingsModal();
+        alert("設定をほぞんしたよ！");
+    }
+
+    // ----------------- 朝の時間監視 (7:55 AM) -----------------
+    function startRealMorningTimer() {
+        function checkTime() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+
+            const totalMinutes = hours * 60 + minutes;
+            const startTime = 7 * 60 + 55; // 朝7時55分
+            const endTime = 8 * 60 + 15;   // 朝8時15分
+
+            // おめでとう（あそべる）画面にいる時だけ強制遷移
+            if (currentIndex === tasks.length) {
+                if (totalMinutes >= startTime && totalMinutes <= endTime) {
+                    currentIndex = tasks.length + 1; // 学校画面へ
+                    updateUI();
+                    playFanfareSound();
+                }
+            }
+            setTimeout(checkTime, 1000);
+        }
+        checkTime();
+    }
+
+    // デバッグ・テスト用：今すぐ学校画面にする
+    function triggerTestSchoolScreen() {
+        closeSettingsModal();
+        currentIndex = tasks.length; // まずおめでとう画面にする
+        updateUI();
+        setTimeout(() => {
+            currentIndex = tasks.length + 1; // 次に学校画面にする
+            updateUI();
+            playFanfareSound();
+            alert("学校へ行く時間になりました！のデモを再生しました。");
+        }, 1000);
+    }
+
+    // ----------------- 初期セットアップ -----------------
+    loadTasks();
+    updateUI();
+    startRealMorningTimer();
+</script>
+
+</body>
+</html>
